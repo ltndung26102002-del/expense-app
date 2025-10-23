@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Chi tiêu</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <meta name="theme-color" content="#ff7f50">
+</head>
+<body>
+<main class="app">
+  <header>
+    <h1>Chi tiêu</h1>
+  </header>
+
+  <!-- Form nhập chi tiêu -->
+  <section class="card input-card">
+    <form id="expense-form">
+      <div class="row">
+        <input id="title" placeholder="Tên (ví dụ: Cà phê)" />
+        <input id="amount" type="text" inputmode="numeric" placeholder="Số tiền" style="width: 130px;">
+      </div>
+      <div class="row">
+        <select id="category">
+          <option value="Ăn uống">Ăn uống</option>
+          <option value="Mua sắm">Mua sắm</option>
+          <option value="Di chuyển">Di chuyển</option>
+          <option value="Giải trí">Giải trí</option>
+          <option value="Khác">Khác</option>
+        </select>
+        <input id="date" type="date" />
+      </div>
+      <div class="row actions">
+        <button type="submit" class="btn primary">Thêm</button>
+        <button id="clear-all" type="button" class="btn danger">Xóa tất cả</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- Thống kê & chart -->
+  <section class="card stats-card">
+    <div class="stats-header">
+      <div id="chart-tabs">
+        <button class="tab-btn active" data-mode="day">Ngày</button>
+        <button class="tab-btn" data-mode="week">Tuần</button>
+        <button class="tab-btn" data-mode="month">Tháng</button>
+      </div>
+      <div id="total-amount">0 ₫</div>
+    </div>
+
+    <div class="week-nav">
+      <button id="prev-week">&lt;</button>
+      <span id="week-label"></span>
+      <button id="next-week">&gt;</button>
+    </div>
+
+    <div class="chart-wrap">
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </section>
+
+  <!-- Danh sách giao dịch -->
+  <section class="card list-card">
+    <h2 style="margin: 0; font-size: 1.6rem; color: var(--accent);">Danh sách giao dịch</h2>
+    <ul id="expense-list"></ul>
+  </section>
+
+  <footer class="footer-note">© Lê Thị Ngọc Dung</footer>
+</main>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<!-- Popup xóa tất cả -->
+<div id="confirmModal" class="modal-hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <button class="modal-close" id="confirmClose">x</button>
+    <h3>Xác nhận</h3>
+    <p>Bạn có chắc muốn xóa tất cả giao dịch?</p>
+    <div class="modal-actions">
+      <button id="confirmCancel" class="btn danger">Hủy</button>
+      <button id="confirmOk" class="btn primary">Xóa</button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup xóa từng giao dịch -->
+<div id="confirmDeleteModal" class="modal-hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <button class="modal-close" id="deleteClose">x</button>
+    <h3>Xác nhận</h3>
+    <p>Bạn có chắc muốn xóa giao dịch này?</p>
+    <div class="modal-actions">
+      <button id="deleteCancel" class="btn danger">Hủy</button>
+      <button id="deleteOk" class="btn primary">Xóa</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nhúng JS cuối body để đảm bảo DOM đã load -->
+<script src="script.js"></script>
+</body>
+</html>
