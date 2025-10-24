@@ -8,8 +8,8 @@ const form = $('#expense-form');
 let editIndex = null;
 
 let currentDate = new Date(); 
-let currentWeekStart = getStartOfWeek(new Date()); 
-
+let currentWeekStart = getStartOfWeek(new Date());
+if (new Date().getDay() === 0) currentWeekStart.setDate(currentWeekStart.getDate() - 7);
 // ========== HÀM TIỆN ÍCH ==========
 function saveData(){ localStorage.setItem(LS_KEY,JSON.stringify(expenses)); }
 function todayISO(){ return new Date().toISOString().split('T')[0]; }
@@ -20,12 +20,12 @@ function showToast(msg){
   setTimeout(()=>toast.className='toast',2500);
 }
 function pad(n){ return n<10?'0'+n:n; }
-function getStartOfWeek(d){
+function getStartOfWeek(d) {
   const date = new Date(d);
   const day = date.getDay();
-  const diff = day===0?-6:1-day;
-  date.setDate(date.getDate()+diff);
-  date.setHours(0,0,0,0);
+  const diff = (day === 0 ? 0 : 1 - day);
+  date.setDate(date.getDate() + diff);
+  date.setHours(0, 0, 0, 0);
   return date;
 }
 function formatWeekLabel(date){
@@ -34,12 +34,17 @@ function formatWeekLabel(date){
   end.setDate(start.getDate()+6);
   return `${pad(start.getDate())}/${pad(start.getMonth()+1)} - ${pad(end.getDate())}/${pad(end.getMonth()+1)}`;
 }
-function getExpensesOfWeek(startDate){
-  const endDate = new Date(startDate);
-  endDate.setDate(endDate.getDate()+6);
-  return expenses.filter(e=>{
+function getExpensesOfWeek(startDate) {
+  const start = new Date(startDate);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+
+  return expenses.filter(e => {
     const d = new Date(e.date);
-    return d>=startDate && d<=endDate;
+    d.setHours(0, 0, 0, 0);
+    return d >= start && d <= end;
   });
 }
 
@@ -66,15 +71,16 @@ form.addEventListener('submit', e=>{
   const amount = parseInt(amountStr,10);
   const category = $('#category').value;
   const date = $('#date').value || todayISO();
+  const note = $('#note')?.value.trim() || '';
+  const photoData = previewDiv.querySelector('img')?.src || '';
 
   if(!title || isNaN(amount)){ showToast('⚠️ Vui lòng nhập đầy đủ!'); return; }
-
   if(editIndex!==null){
-    expenses[editIndex] = { title, amount, category, date };
-    showToast('✏️ Đã chỉnh sửa!');
-    editIndex = null;
+  expenses[editIndex] = { title, amount, category, date, note, photo: photoData };
+  showToast('✏️ Đã chỉnh sửa!');
+  editIndex = null;
   } else {
-    expenses.push({ title, amount, category, date });
+    expenses.push({ title, amount, category, date, note, photo: photoData });
     showToast('✅ Đã thêm!');
   }
 
@@ -82,6 +88,8 @@ form.addEventListener('submit', e=>{
   renderCurrentView();
   form.reset();
   $('#date').value = todayISO();
+  previewDiv.innerHTML = '';
+  photoInput.value = '';
 });
 
 // ========== TAB ==========
@@ -99,31 +107,32 @@ document.querySelectorAll('.tab-btn').forEach(btn=>{
 $('#prev-week').addEventListener('click', ()=>{
   if(viewMode==='day') currentDate.setDate(currentDate.getDate()-1);
   else if(viewMode==='week') currentWeekStart.setDate(currentWeekStart.getDate()-7);
-  else if(viewMode==='month') currentDate.setMonth(currentDate.getMonth()-1);
+  else if (viewMode === 'year') currentDate.setFullYear(currentDate.getFullYear() - 1);
   updateLabel();
   renderCurrentView();
 });
 $('#next-week').addEventListener('click', ()=>{
   if(viewMode==='day') currentDate.setDate(currentDate.getDate()+1);
   else if(viewMode==='week') currentWeekStart.setDate(currentWeekStart.getDate()+7);
-  else if(viewMode==='month') currentDate.setMonth(currentDate.getMonth()+1);
+  else if (viewMode === 'year') currentDate.setFullYear(currentDate.getFullYear() + 1);
   updateLabel();
   renderCurrentView();
 });
 
 // ========== UPDATE LABEL ==========
-function updateLabel(){
+function updateLabel() {
   const label = $('#week-label');
-  label.textContent = viewMode==='day'? `${pad(currentDate.getDate())}/${pad(currentDate.getMonth()+1)}/${currentDate.getFullYear()}`
-                     : viewMode==='week'? formatWeekLabel(currentWeekStart)
-                     : `${pad(currentDate.getMonth()+1)}/${currentDate.getFullYear()}`;
+  label.textContent =
+    viewMode === 'day' ? `${pad(currentDate.getDate())}/${pad(currentDate.getMonth()+1)}/${currentDate.getFullYear()}`
+    : viewMode === 'week' ? formatWeekLabel(currentWeekStart)
+    : `${currentDate.getFullYear()}`; 
 }
 
 // ========== RENDER ==========
 function renderCurrentView(){
   if(viewMode==='day') renderDay();
   else if(viewMode==='week') renderWeek();
-  else if(viewMode==='month') renderMonth();
+  else if (viewMode === 'year') renderYear();
 }
 
 function renderDay(){
@@ -140,70 +149,29 @@ function renderWeek(){
   updateChartFiltered(filtered);
 }
 
-function renderMonth(){
-  const filtered = expenses.filter(e=>{
-    const d = new Date(e.date);
-    return d.getMonth()===currentDate.getMonth() && d.getFullYear()===currentDate.getFullYear();
-  });
+function renderYear() {
+  const year = currentDate.getFullYear();
+  const filtered = expenses.filter(e => new Date(e.date).getFullYear() === year);
   renderExpensesFiltered(filtered);
   updateTotalFiltered(filtered);
   updateChartFiltered(filtered);
 }
 
-// ========== RENDER DANH SÁCH ==========
-function renderExpensesFiltered(listFiltered){
-  const list = $('#expense-list');
-  list.innerHTML='';
-  const filtered = listFiltered.sort((a,b)=>new Date(b.date)-new Date(a.date));
-  if(filtered.length===0){
-    list.innerHTML=`<li style="text-align:center;color:#888;padding:12px;">💤 Chưa có giao dịch nào</li>`;
-    return;
-  }
-
-  filtered.forEach(exp=>{
-    const realIndex = expenses.indexOf(exp);
-    const li = document.createElement('li');
-    li.innerHTML=`
-      <div>
-        <strong>${exp.title}</strong>
-        <small> • ${exp.date}</small>
-      </div>
-      <div>
-        ${exp.amount.toLocaleString('vi-VN')} ₫
-        <button class="edit-btn" data-index="${realIndex}">✏️</button>
-        <button class="delete-btn" data-index="${realIndex}">🗑️</button>
-      </div>
-    `;
-    list.appendChild(li);
-  });
-
-  document.querySelectorAll('.delete-btn').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const idx = parseInt(e.target.dataset.index);
-      expenses.splice(idx,1);
-      saveData();
-      renderCurrentView();
-    });
-  });
-
-  document.querySelectorAll('.edit-btn').forEach(btn=>{
-    btn.addEventListener('click', e=>{
-      const idx = parseInt(e.target.dataset.index);
-      const exp = expenses[idx];
-      $('#title').value = exp.title;
-      $('#amount').value = exp.amount.toLocaleString('vi-VN');
-      $('#category').value = exp.category;
-      $('#date').value = exp.date;
-      editIndex = idx;
-    });
-  });
-}
-
 // ========== TỔNG TIỀN ==========
+
 function updateTotalFiltered(listFiltered){
   const total = listFiltered.reduce((sum,e)=>sum+e.amount,0);
   $('#total-amount').textContent = total.toLocaleString('vi-VN') + ' ₫';
 }
+
+// ========== MÀU CỐ ĐỊNH CHO CATEGORY ==========
+const categoryColors = {
+  "Ăn uống": "#9be1ff",
+  "Di chuyển": "#f7c9ff",
+  "Mua sắm": "#E2F0CB",
+  "Giải trí": "#ff8c8c",
+  "Khác": "#c2c8ff"
+};
 
 // ========== CHART ==========
 function updateChartFiltered(listFiltered) {
@@ -222,6 +190,7 @@ function updateChartFiltered(listFiltered) {
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: { display: true, position: 'bottom' }
         }
@@ -231,7 +200,7 @@ function updateChartFiltered(listFiltered) {
   }
 
   const categoriesInData = [...new Set(listFiltered.map(e => e.category))];
-  const colors = ['#9be1ff', '#f7c9ff', '#E2F0CB', '#ff8c8c', '#c2c8ff'];
+  //const colors = ['#9be1ff', '#f7c9ff', '#E2F0CB', '#ff8c8c', '#c2c8ff'];
   const chartType = viewMode === 'day' ? 'doughnut' : 'bar';
 
   let datasets, labels;
@@ -253,7 +222,7 @@ function updateChartFiltered(listFiltered) {
           .filter(e => e.category === c)
           .reduce((sum, e) => sum + e.amount, 0)
       ),
-      backgroundColor: colors.slice(0, categoriesInData.length),
+      backgroundColor: categoriesInData.map(c => categoryColors[c] || "#ccc"),
       borderRadius: 15
     }];
   // =================== TUẦN ===================
@@ -281,26 +250,31 @@ function updateChartFiltered(listFiltered) {
       return {
         label: c,
         data: dataByDay,
-        backgroundColor: colors[i % colors.length],
+        backgroundColor: categoryColors[c] || "#ccc",
         borderRadius: 5,
         font: { size: 10 }
       };
     });
   // =================== THÁNG ===================
-  } else {
-    labels = [labelText];
-    datasets = categoriesInData.map((c, i) => {
-      const total = listFiltered
-        .filter(e => e.category === c)
-        .reduce((sum, e) => sum + e.amount, 0);
-      return {
-        label: c,
-        data: [total],
-        backgroundColor: colors[i % colors.length],
-        borderRadius: 0
-      };
+  } else if (viewMode === 'year') {
+  const months = Array.from({ length: 12 }, (_, i) => i);
+  labels = months.map(m => `${pad(m + 1)}/${currentDate.getFullYear()}`);
+  datasets = [...new Set(listFiltered.map(e => e.category))].map(c => {
+    const dataByMonth = months.map(m => {
+      const monthData = listFiltered.filter(e => {
+        const d = new Date(e.date);
+        return e.category === c && d.getMonth() === m;
+      });
+      return monthData.reduce((sum, e) => sum + e.amount, 0);
     });
-  }
+    return {
+      label: c,
+      data: dataByMonth,
+      backgroundColor: categoryColors[c] || '#ccc',
+      borderRadius: 5,
+    };
+  });
+}
   // =================== VẼ CHART ===================
   categoryChart = new Chart(ctx, {
     type: chartType,
@@ -408,18 +382,21 @@ deleteClose.addEventListener('click', ()=>{
   hideModal(deleteModal);
 });
 
-function renderExpensesFiltered(listFiltered){
+function renderExpensesFiltered(listFiltered) {
   const list = $('#expense-list');
-  list.innerHTML='';
-  const filtered = listFiltered.sort((a,b)=>new Date(b.date)-new Date(a.date));
-  if(filtered.length===0){
-    list.innerHTML=`<li style="text-align:center;color:#888;padding:12px;">💤 Chưa có giao dịch nào</li>`;
+  list.innerHTML = '';
+  const filtered = listFiltered.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<li style="text-align:center;color:#888;padding:12px;">💤 Chưa có giao dịch nào</li>`;
     return;
   }
 
-  filtered.forEach(exp=>{
+  filtered.forEach(exp => {
     const realIndex = expenses.indexOf(exp);
     const li = document.createElement('li');
+    li.setAttribute("data-category", exp.category); 
+
     li.innerHTML = `
       <div class="top-row">
         <div class="info">
@@ -436,21 +413,131 @@ function renderExpensesFiltered(listFiltered){
     list.appendChild(li);
   });
 
-  document.querySelectorAll('.edit-btn').forEach(btn=>{
-    btn.addEventListener('click', e=>{
+  document.querySelectorAll('.edit-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
       const idx = parseInt(e.target.dataset.index);
       const exp = expenses[idx];
       $('#title').value = exp.title;
       $('#amount').value = exp.amount.toLocaleString('vi-VN');
       $('#category').value = exp.category;
       $('#date').value = exp.date;
+      $('#note').value = exp.note || '';
       editIndex = idx;
     });
   });
+  setupDeleteButtons();
 
-  setupDeleteButtons(); 
+  document.querySelectorAll('#expense-list li').forEach(li => {
+    li.addEventListener('click', e => {
+      if (e.target.classList.contains('edit-btn') || e.target.classList.contains('delete-btn')) return;
+
+      const realIndex = parseInt(li.querySelector('.delete-btn').dataset.index);
+      const exp = expenses[realIndex];
+      const noteText = exp.note?.trim() || 'Không có ghi chú nào';
+      const imgHTML = exp.photo ? `<img src="${exp.photo}" class="note-photo" alt="photo">` : '';
+
+      noteContent.innerHTML = `
+        <div class="note-text">${noteText}</div>
+        ${imgHTML}
+      `;
+      noteModal.classList.remove('modal-hidden');
+    });
+  });
 }
+
 // ========== KHỞI TẠO ==========
 $('#date').value = todayISO();
 updateLabel();
 renderCurrentView();
+
+// --- FILTER CATEGORY ---
+const filterBtn = document.getElementById("filter-btn");
+const filterDropdown = document.getElementById("filter-dropdown");
+const filterSelect = document.getElementById("filter-category");
+filterBtn.addEventListener("click", () => {
+  filterDropdown.style.display = filterDropdown.style.display === "block" ? "none" : "block";
+});
+document.addEventListener("click", (e) => {
+  if (!filterDropdown.contains(e.target) && !filterBtn.contains(e.target)) {
+    filterDropdown.style.display = "none";
+  }
+});
+
+const overlay = document.getElementById("loading-overlay");
+
+filterSelect.addEventListener("change", () => {
+  const selected = filterSelect.value;
+  const items = document.querySelectorAll("#expense-list li");
+  overlay.classList.remove("hidden");
+
+  setTimeout(() => {
+    items.forEach(li => {
+      const cat = li.getAttribute("data-category");
+      li.hidden = !(selected === "" || cat === selected);
+    });
+
+    overlay.classList.add("hidden");
+    filterDropdown.style.display = "none";
+  }, 500); 
+});
+
+const noteModal = document.getElementById('noteModal');
+const noteContent = document.getElementById('noteContent');
+
+document.getElementById('noteClose').addEventListener('click', () => {
+  noteModal.classList.add('modal-hidden');
+});
+noteModal.querySelector('.modal-backdrop').addEventListener('click', () => {
+  noteModal.classList.add('modal-hidden');
+});
+
+window.addEventListener('load', () => {
+    setTimeout(() => {
+      document.getElementById('splash-screen').style.display = 'none';
+      document.querySelector('main.app').style.display = 'block';
+    }, 2000);
+  });
+const photoInput = document.getElementById('photo');
+const previewDiv = document.getElementById('photo-preview');
+
+photoInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'preview-item';
+    wrapper.innerHTML = `
+      <img src="${ev.target.result}" alt="preview">
+      <button type="button">&times;</button>
+    `;
+    previewDiv.appendChild(wrapper);
+
+    // nút xoá
+    wrapper.querySelector('button').addEventListener('click', () => {
+      wrapper.remove();
+      photoInput.value = ''; 
+    });
+  };
+  reader.readAsDataURL(file);
+});
+// ========== PHÓNG TO ẢNH TRONG NOTE ==========
+noteContent.addEventListener('click', e => {
+  if (e.target.tagName === 'IMG' && e.target.classList.contains('note-photo')) {
+    const fullImgModal = document.createElement('div');
+    fullImgModal.className = 'fullscreen-img-modal';
+    fullImgModal.innerHTML = `
+      <div class="backdrop"></div>
+      <div class="img-container">
+        <img src="${e.target.src}" alt="full photo" class="fullscreen-img">
+        <button class="close-full">&times;</button>
+      </div>
+    `;
+    document.body.appendChild(fullImgModal);
+    fullImgModal.querySelector('.close-full').addEventListener('click', () => {
+      fullImgModal.remove();
+    });
+  }
+});
+
