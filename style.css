@@ -14,7 +14,29 @@ html, body {
   color: #222;
   padding: 20px;
 }
+input, select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+}
+textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
 
+textarea:focus {
+  border-color: var(--accent, #ff7f50);
+}
 .app { max-width: 720px; margin: 0 auto; }
 
 header {
@@ -24,7 +46,7 @@ header {
   margin-bottom: 12px;
 }
 
-h1 {margin-top: -10px;margin-bottom: 0px; font-size: 1.6rem; color: var(--accent); }
+h1 {margin-top: -20px;margin-bottom: 0px; font-size: 1.6rem; color: var(--accent); }
 .subtitle { margin: 0; font-size: 0.95rem; color: var(--muted); }
 
 .card {
@@ -240,7 +262,7 @@ select option {
 .tab-btn {
   background: #f0f0f8;
   border: none;
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 14px;
@@ -392,12 +414,11 @@ li:hover {
 }
 .list-card {
   position: relative;
-  height: 265px;        
+  height: 235px;
   display: flex;
   flex-direction: column;
-  overflow: hidden;      
+  overflow: visible;
 }
-
 #expense-list {
   flex: 1;
   overflow-y: auto;       
@@ -414,4 +435,207 @@ li:hover {
 }
 #expense-list::-webkit-scrollbar-thumb:hover {
   background-color: rgba(0,0,0,0.35);
+}
+#loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  pointer-events: none;
+}
+.list-wrapper {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #4b5ae4;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+.hidden {
+  display: none !important;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+#splash-screen {
+  position: fixed;
+  inset: 0;
+  background: #fcfdf2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeOut 0.6s ease 2.2s forwards, zoomOut 0.8s ease 2s forwards;
+}
+.splash-logo {
+  width: 90px;
+  height: 90px;
+  border-radius: 22%;
+  animation: popIn 0.8s ease;
+}
+@keyframes popIn {
+  0% { transform: scale(0.6); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes zoomOut {
+  to { transform: scale(1.2); opacity: 0; }
+}
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+#photo + label:hover svg {
+  fill: var(--accent);
+  transform: scale(1.1);
+  transition: 0.2s ease;
+}
+#photo-preview {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+#photo-preview img {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  position: relative;
+}
+
+.preview-item {
+  position: relative;
+}
+
+.preview-item button {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: rgba(0,0,0,0.6);
+  border: none;
+  color: white;
+  font-size: 14px;
+  border-radius: 50%;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.preview-item button:hover {
+  background: rgba(0,0,0,0.8);
+}
+.note-photo {
+  width: 100%;
+  max-height: 250px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-top: 10px;
+}
+/* ========== ẢNH TRONG POPUP GHI CHÚ ========== */
+.note-img {
+  width: 100%;
+  max-height: 250px;
+  object-fit: cover;
+  border-radius: 10px;
+  margin-top: 10px;
+  cursor: zoom-in;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.note-img:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+}
+
+/* ========== POPUP HIỂN THỊ FULL ẢNH ========== */
+#imageViewModal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.85);
+  backdrop-filter: blur(3px);
+  z-index: 10000;
+  animation: fadeIn 0.25s ease;
+}
+
+#imageViewModal.modal-hidden {
+  display: none;
+}
+
+#imageViewModal img {
+  max-width: 90vw;
+  max-height: 90vh;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  animation: zoomIn 0.3s ease;
+}
+
+@keyframes zoomIn {
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+.fullscreen-img-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+.fullscreen-img-modal .img-container {
+  position: relative;
+}
+.fullscreen-img-modal img {
+  max-width: 95%;
+  max-height: 95%;
+  border-radius: 10px;
+  box-shadow: 0 0 20px rgba(255,255,255,0.3);
+}
+.fullscreen-img-modal .close-full {
+  position: absolute;
+  top: 0px;
+  right: 20px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  border: none;
+  font-size: 28px;
+  line-height: 1;
+  padding: 4px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.fullscreen-img-modal .close-full:hover {
+  background: rgba(255,255,255,0.3);
+}
+#categoryChart {
+    display: block !important;
+    box-sizing: border-box !important; 
+    height: 270px !important;
+    width: 290px !important;
 }
