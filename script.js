@@ -426,7 +426,6 @@ function renderExpensesFiltered(listFiltered) {
     });
   });
   setupDeleteButtons();
-
   document.querySelectorAll('#expense-list li').forEach(li => {
     li.addEventListener('click', e => {
       if (e.target.classList.contains('edit-btn') || e.target.classList.contains('delete-btn')) return;
@@ -443,6 +442,7 @@ function renderExpensesFiltered(listFiltered) {
       noteModal.classList.remove('modal-hidden');
     });
   });
+  updateTop3Expenses(listFiltered);
 }
 
 // ========== KHỞI TẠO ==========
@@ -541,3 +541,50 @@ noteContent.addEventListener('click', e => {
   }
 });
 
+function updateTop3Expenses(expenses) {
+  const top3List = document.getElementById('top3-list');
+  top3List.innerHTML = '';
+
+  if (!expenses.length) {
+    top3List.innerHTML = '<li style="color:#777;">Chưa có dữ liệu...</li>';
+    return;
+  }
+
+  const categoryTotals = {};
+  expenses.forEach(exp => {
+    if (!categoryTotals[exp.category]) categoryTotals[exp.category] = 0;
+    categoryTotals[exp.category] += exp.amount;
+  });
+
+  const sortedCategories = Object.entries(categoryTotals)
+    .map(([category, total]) => ({ category, total }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 3);
+
+  const medals = ['🥇', '🥈', '🥉'];
+  const colors = ['#fff3cd', '#e2e3e5', '#f8d7da']; 
+
+  sortedCategories.forEach((cat, i) => {
+    const li = document.createElement('li');
+    li.style = `
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:8px 10px;
+      border-radius:12px;
+      margin-bottom:6px;
+      font-size:1rem;
+      background:${colors[i]};
+      box-shadow:0 1px 3px rgba(0,0,0,0.08);
+      animation: fadeInUp 0.3s ease ${i * 0.1}s both;
+    `;
+    li.innerHTML = `
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:1.2rem;">${medals[i]}</span>
+        <span>${cat.category}</span>
+      </div>
+      <strong style="color:#333;">${cat.total.toLocaleString()} ₫</strong>
+    `;
+    top3List.appendChild(li);
+  });
+}
