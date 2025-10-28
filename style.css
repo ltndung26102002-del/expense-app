@@ -639,3 +639,20 @@ li:hover {
     height: 270px !important;
     width: 290px !important;
 }
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.top3-card li:hover {
+  transform: scale(1.02);
+  transition: 0.15s ease;
+}
+
+
