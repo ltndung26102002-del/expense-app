@@ -386,9 +386,11 @@ function renderExpensesFiltered(listFiltered) {
   const list = $('#expense-list');
   list.innerHTML = '';
   const filtered = listFiltered.sort((a, b) => new Date(b.date) - new Date(a.date));
+  const top3List = document.getElementById('top3-list');
 
   if (filtered.length === 0) {
     list.innerHTML = `<li style="text-align:center;color:#888;padding:12px;">💤 Chưa có giao dịch nào</li>`;
+    top3List.innerHTML = `<li style="color:#777;">Chưa có dữ liệu...</li>`;
     return;
   }
 
@@ -541,17 +543,30 @@ noteContent.addEventListener('click', e => {
   }
 });
 
-function updateTop3Expenses(expenses) {
+function updateTop3Expenses(listFiltered) {
   const top3List = document.getElementById('top3-list');
   top3List.innerHTML = '';
 
-  if (!expenses.length) {
+  // --- Tạo nhãn thời gian theo view ---
+  let labelText = '';
+  if (viewMode === 'day') {
+    labelText = `${pad(currentDate.getDate())}/${pad(currentDate.getMonth() + 1)}/${currentDate.getFullYear()}`;
+  } else if (viewMode === 'week') {
+    labelText = formatWeekLabel(currentWeekStart);
+  } else if (viewMode === 'year') {
+    labelText = `${currentDate.getFullYear()}`;
+  }
+
+  // --- Không có dữ liệu ---
+  if (!listFiltered.length) {
     top3List.innerHTML = '<li style="color:#777;">Chưa có dữ liệu...</li>';
     return;
   }
 
+  // --- Có dữ liệu ---
+
   const categoryTotals = {};
-  expenses.forEach(exp => {
+  listFiltered.forEach(exp => {
     if (!categoryTotals[exp.category]) categoryTotals[exp.category] = 0;
     categoryTotals[exp.category] += exp.amount;
   });
@@ -562,7 +577,7 @@ function updateTop3Expenses(expenses) {
     .slice(0, 3);
 
   const medals = ['🥇', '🥈', '🥉'];
-  const colors = ['#fff3cd', '#e2e3e5', '#f8d7da']; 
+  const colors = ['#fff3cd', '#e2e3e5', '#f8d7da'];
 
   sortedCategories.forEach((cat, i) => {
     const li = document.createElement('li');
