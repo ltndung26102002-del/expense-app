@@ -319,7 +319,7 @@ select option {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  margin-left: 10px;
+  margin-left: 1px;
 }
 
 .week-nav button {
@@ -654,5 +654,6 @@ li:hover {
   transform: scale(1.02);
   transition: 0.15s ease;
 }
+
 
 
